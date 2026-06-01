@@ -1,0 +1,233 @@
+openapi: 3.0.3
+info:
+  title: Pruva Pro+ API
+  version: 1.0.0
+  description: MVP + Phase 2 contract for iOS Pro+ features.
+servers:
+  - url: /api/v1/pro-plus
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    SegmentInput:
+      type: object
+      required: [from_lat, from_lon, to_lat, to_lon]
+      properties:
+        from_lat: { type: number }
+        from_lon: { type: number }
+        to_lat: { type: number }
+        to_lon: { type: number }
+        distance_nm: { type: number }
+        wind_kn: { type: number }
+        gust_kn: { type: number }
+        wave_m: { type: number }
+        current_kn: { type: number }
+        visibility_nm: { type: number }
+        rain_mm: { type: number }
+        is_night: { type: boolean }
+    RiskBreakdown:
+      type: object
+      properties:
+        wind: { type: integer }
+        gust: { type: integer }
+        wave: { type: integer }
+        current: { type: integer }
+        visibility: { type: integer }
+        rain: { type: integer }
+        night: { type: integer }
+    RouteRecommendation:
+      type: object
+      properties:
+        id: { type: string }
+        strategy: { type: string, enum: [safest, shortest, fuel_efficient] }
+        distance_nm: { type: number }
+        eta_hours: { type: number }
+        risk_score: { type: integer }
+        fuel_l: { type: number }
+paths:
+  /routes/analyze:
+    post:
+      summary: Segment-based route risk analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [segments]
+              properties:
+                routeName: { type: string }
+                preference: { type: string, enum: [safest, shortest, fuel_efficient] }
+                duration_hours: { type: number }
+                segments:
+                  type: array
+                  items: { $ref: '#/components/schemas/SegmentInput' }
+      responses:
+        "201":
+          description: Risk analysis created
+  /routes/recommend:
+    post:
+      summary: Multi-objective route recommendation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [start, end]
+              properties:
+                start: { type: object }
+                end: { type: object }
+                waypoints:
+                  type: array
+                  items: { type: object }
+                weatherWindowHours: { type: integer }
+      responses:
+        "200":
+          description: Route alternatives
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alternatives:
+                    type: array
+                    items: { $ref: '#/components/schemas/RouteRecommendation' }
+  /anchorages/{anchorageId}/intelligence:
+    get:
+      summary: Anchorage intelligence + crowd forecast
+      parameters:
+        - in: path
+          name: anchorageId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Intelligence snapshot
+  /fuel-profile:
+    get:
+      summary: Get fuel profile
+      responses:
+        "200": { description: Fuel profile }
+    put:
+      summary: Upsert fuel profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cruise_speed_kn, burn_rate_lph, fuel_price_per_l]
+              properties:
+                boat_type: { type: string }
+                cruise_speed_kn: { type: number }
+                burn_rate_lph: { type: number }
+                fuel_price_per_l: { type: number }
+                reserve_pct: { type: number }
+      responses:
+        "200": { description: Upserted fuel profile }
+  /cost-estimates:
+    post:
+      summary: Weather-aware fuel/cost estimate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [eta_hours]
+              properties:
+                route_id: { type: string, format: uuid }
+                distance_nm: { type: number }
+                eta_hours: { type: number }
+                avg_wind_kn: { type: number }
+                avg_wave_m: { type: number }
+      responses:
+        "201": { description: Cost estimate created }
+  /alerts/rules:
+    get:
+      summary: List active alert rules
+      responses:
+        "200": { description: List of rules }
+    post:
+      summary: Create alert rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type: { type: string }
+                threshold: { type: object }
+                scope: { type: object }
+                quiet_hours_start: { type: string, format: time }
+                quiet_hours_end: { type: string, format: time }
+                cooldown_minutes: { type: integer }
+      responses:
+        "201": { description: Rule created }
+  /alerts/events:
+    get:
+      summary: List alert events
+      responses:
+        "200": { description: List of events }
+  /logbook/private:
+    get:
+      summary: List private logbook entries
+      responses:
+        "200": { description: List of entries }
+    post:
+      summary: Create private logbook entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string }
+                note: { type: string }
+                latitude: { type: number }
+                longitude: { type: number }
+                weather: { type: object }
+                tags:
+                  type: array
+                  items: { type: string }
+      responses:
+        "201": { description: Entry created }
+  /sync/delta:
+    get:
+      summary: Device delta sync
+      parameters:
+        - in: query
+          name: device_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: since_cursor
+          required: false
+          schema: { type: string, format: date-time }
+      responses:
+        "200": { description: Delta payload }
+  /sync/ack:
+    post:
+      summary: Ack applied sync cursor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_id, cursor]
+              properties:
+                device_id: { type: string }
+                cursor: { type: string, format: date-time }
+      responses:
+        "200": { description: Cursor updated }

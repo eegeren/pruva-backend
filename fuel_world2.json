@@ -1,0 +1,63 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-04-28T18:57:39Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "node",
+  "id": 9496917731,
+  "lat": 38.8393367,
+  "lon": 0.1179692,
+  "tags": {
+    "opening_hours": "24/7",
+    "operator": "gasorba",
+    "seamark:small_craft_facility:category": "fuel",
+    "seamark:type": "small_craft_facility",
+    "self_service": "yes",
+    "waterway": "fuel"
+  }
+},
+{
+  "type": "node",
+  "id": 9496917732,
+  "lat": 38.8417062,
+  "lon": 0.1138125,
+  "tags": {
+    "addr:city": "Dénia",
+    "addr:postcode": "03700",
+    "addr:street": "Cl Puerto Pesquero",
+    "name": "Poste Pesca Moeve Dénia",
+    "opening_hours": "Mo-Fr 09:00-13:00, 16:00-20:00",
+    "operator:-2024": "Cepsa",
+    "phone": "+34 686849955",
+    "seamark:small_craft_facility:category": "fuel",
+    "seamark:type": "small_craft_facility",
+    "waterway": "fuel",
+    "website": "https://cercadeti.cepsa.es/postes-pesca/alicante/denia-denia"
+  }
+},
+{
+  "type": "node",
+  "id": 9504564923,
+  "lat": 38.8417410,
+  "lon": 0.1191941,
+  "tags": {
+    "fuel:diesel": "yes",
+    "fuel:gasoline": "yes",
+    "opening_hours": "24/7",
+    "operator": "Marina de Dénia",
+    "payment:cash": "yes",
+    "payment:credit_cards": "yes",
+    "phone": "+34966424307",
+    "seamark:small_craft_facility:category": "fuel",
+    "seamark:type": "small_craft_facility",
+    "waterway": "fuel"
+  }
+}
+
+  ]
+}

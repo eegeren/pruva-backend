@@ -1,0 +1,125 @@
+{
+  "analyzeRouteRequest": {
+    "routeName": "Bodrum to Datca morning leg",
+    "preference": "safest",
+    "duration_hours": 4.5,
+    "segments": [
+      {
+        "from_lat": 37.034,
+        "from_lon": 27.43,
+        "to_lat": 36.95,
+        "to_lon": 27.7,
+        "distance_nm": 12.2,
+        "wind_kn": 18,
+        "gust_kn": 24,
+        "wave_m": 1.3,
+        "current_kn": 0.9,
+        "visibility_nm": 8,
+        "rain_mm": 0.2,
+        "is_night": false
+      }
+    ]
+  },
+  "analyzeRouteResponse": {
+    "route_id": "2adfd175-b73f-4e8d-b95d-9039ad66d727",
+    "route_score": 41,
+    "threshold": { "low": 0, "medium": 45, "high": 70 },
+    "segments": [
+      {
+        "idx": 0,
+        "distance_nm": 12.2,
+        "score": 41,
+        "level": "low",
+        "breakdown": {
+          "wind": 45,
+          "gust": 48,
+          "wave": 32,
+          "current": 18,
+          "visibility": 20,
+          "rain": 1,
+          "night": 0
+        }
+      }
+    ]
+  },
+  "recommendRoutesRequest": {
+    "start": { "lat": 37.034, "lon": 27.43 },
+    "end": { "lat": 36.712, "lon": 28.94 },
+    "waypoints": [],
+    "weatherWindowHours": 24,
+    "distance_nm": 52
+  },
+  "recommendRoutesResponse": {
+    "alternatives": [
+      {
+        "id": "safest",
+        "strategy": "safest",
+        "distance_nm": 61.4,
+        "eta_hours": 8.4,
+        "risk_score": 34,
+        "fuel_l": 202.6
+      },
+      {
+        "id": "shortest",
+        "strategy": "shortest",
+        "distance_nm": 52.0,
+        "eta_hours": 7.4,
+        "risk_score": 58,
+        "fuel_l": 197.6
+      },
+      {
+        "id": "fuel_efficient",
+        "strategy": "fuel_efficient",
+        "distance_nm": 56.2,
+        "eta_hours": 8.9,
+        "risk_score": 41,
+        "fuel_l": 163.0
+      }
+    ]
+  },
+  "fuelProfileUpsertRequest": {
+    "boat_type": "sailing_yacht_42ft",
+    "cruise_speed_kn": 6.5,
+    "burn_rate_lph": 5.2,
+    "fuel_price_per_l": 51.4,
+    "reserve_pct": 20
+  },
+  "costEstimateRequest": {
+    "route_id": "2adfd175-b73f-4e8d-b95d-9039ad66d727",
+    "distance_nm": 52,
+    "eta_hours": 8.5,
+    "avg_wind_kn": 22,
+    "avg_wave_m": 1.4
+  },
+  "createAlertRuleRequest": {
+    "type": "wind_increase",
+    "threshold": { "wind_kn_gt": 25 },
+    "scope": { "route_id": "2adfd175-b73f-4e8d-b95d-9039ad66d727" },
+    "quiet_hours_start": "23:00:00",
+    "quiet_hours_end": "07:00:00",
+    "cooldown_minutes": 60
+  },
+  "createPrivateLogbookRequest": {
+    "title": "Anchor drag watch",
+    "note": "Shifted 12m after 03:40 gusts.",
+    "latitude": 36.703,
+    "longitude": 28.92,
+    "weather": { "wind_kn": 24, "wave_m": 0.8 },
+    "tags": ["night-watch", "anchor"]
+  },
+  "deltaSyncResponse": {
+    "device_id": "ios-16-pro-max-abc",
+    "since_cursor": "2026-04-28T10:00:00.000Z",
+    "next_cursor": "2026-04-29T09:15:11.321Z",
+    "changes": [
+      {
+        "stream": "alert_events",
+        "entity_id": "26f5d6a3-c2a6-4ef7-a337-39b70199a63f",
+        "operation": "upsert",
+        "payload": { "severity": "warning", "title": "Wind rising to 27 kn" },
+        "version": 101,
+        "changed_at": "2026-04-29T09:15:11.321Z"
+      }
+    ]
+  }
+}
