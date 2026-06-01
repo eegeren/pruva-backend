@@ -9,6 +9,17 @@ function getJwtSecret() {
   return process.env.JWT_SECRET;
 }
 
+async function ensureProfileColumns() {
+  await db.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(50);
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS country VARCHAR(100);
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS age INTEGER;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_color VARCHAR(7) DEFAULT '#0077B6';
+  `);
+}
+
 exports.register = async (req, res, next) => {
   const client = await db.connect();
   try {
@@ -70,6 +81,7 @@ exports.login = async (req, res, next) => {
 
 exports.getProfile = async (req, res, next) => {
   try {
+    await ensureProfileColumns();
     const result = await db.query(
       `SELECT id, email, username, full_name, phone, country, age, bio, avatar_color, is_premium, created_at
        FROM users
@@ -85,6 +97,7 @@ exports.getProfile = async (req, res, next) => {
 
 exports.updateProfile = async (req, res, next) => {
   try {
+    await ensureProfileColumns();
     const { full_name, phone, country, age, bio, username, avatar_color } = req.body;
 
     if (username) {
