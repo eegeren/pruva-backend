@@ -24,17 +24,36 @@ exports.getByBounds = async (req, res, next) => {
       return res.status(400).json({ error: 'Bounds must be valid numbers' });
     }
 
-    let query = `SELECT * FROM map_points
-      WHERE latitude BETWEEN $1 AND $2
+    let where = `latitude BETWEEN $1 AND $2
       AND longitude BETWEEN $3 AND $4`;
     const params = bounds;
 
     if (type) {
-      query += ' AND type = $5';
+      where += ' AND type = $5';
       params.push(type);
     }
 
-    query += ' ORDER BY created_at DESC LIMIT 100';
+    const query = `
+      WITH ranked AS (
+        SELECT
+          map_points.*,
+          ROW_NUMBER() OVER (
+            PARTITION BY
+              type,
+              lower(regexp_replace(trim(name), '\\s+', ' ', 'g')),
+              round(latitude::numeric, 4),
+              round(longitude::numeric, 4)
+            ORDER BY created_at DESC, id DESC
+          ) AS duplicate_rank
+        FROM map_points
+        WHERE ${where}
+      )
+      SELECT *
+      FROM ranked
+      WHERE duplicate_rank = 1
+      ORDER BY created_at DESC
+      LIMIT 100
+    `;
 
     const result = await db.query(query, params);
     res.json(formatMapPointRows(result.rows));
