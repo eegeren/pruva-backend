@@ -8,15 +8,27 @@ const files = [
   { file: 'fuel_world2.json',    type: 'fuel' },
   { file: 'service_world.json',  type: 'service' },
   { file: 'diving_world.json',   type: 'diving' },
+  { file: 'customs_world.json',  type: 'customs' },
+  { file: 'emergency_world.json', type: 'emergency' },
 ];
 
 async function importAll() {
   for (const { file, type } of files) {
-    if (!fs.existsSync(file)) { console.log(`${file} bulunamadı, atlanıyor`); continue; }
+    if (!fs.existsSync(file)) {
+      console.log(`${file} not found, skipping`);
+      continue;
+    }
     
-    const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+    let data;
+    try {
+      data = JSON.parse(fs.readFileSync(file, 'utf8'));
+    } catch (err) {
+      console.warn(`${file} is not valid JSON, skipping`);
+      continue;
+    }
+
     const nodes = data.elements || [];
-    console.log(`\n📂 ${file} → ${nodes.length} nokta`);
+    console.log(`\n${file} -> ${nodes.length} points`);
 
     let imported = 0, skipped = 0;
 
@@ -45,14 +57,14 @@ async function importAll() {
       }
 
       if (imported % 500 === 0 && imported > 0) {
-        console.log(`  ✅ ${imported} / ${nodes.length}`);
+        console.log(`  ${imported} / ${nodes.length}`);
       }
     }
-    console.log(`  🎉 ${file}: ${imported} aktarıldı, ${skipped} atlandı`);
+    console.log(`  ${file}: ${imported} imported, ${skipped} skipped`);
   }
 
   await pool.end();
-  console.log('\n✅ Tüm veriler aktarıldı!');
+  console.log('\nAll map point data imported');
 }
 
 importAll().catch(console.error);

@@ -46,22 +46,6 @@ function hasSparseDetails(point) {
   );
 }
 
-function hasAiReviews(point) {
-  if (point.type !== 'marina') return true;
-  const raw = point.ai_reviews;
-  if (!raw) return false;
-  if (Array.isArray(raw)) return raw.length > 0;
-  if (typeof raw === 'string') {
-    try {
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) && parsed.length > 0;
-    } catch {
-      return false;
-    }
-  }
-  return false;
-}
-
 function enrichmentIsFresh(point) {
   if (!point.enriched_at) return false;
   const age = Date.now() - new Date(point.enriched_at).getTime();
@@ -71,13 +55,13 @@ function enrichmentIsFresh(point) {
 function shouldEnrich(point) {
   if (!isConfigured()) return false;
   if (!ENRICHABLE_TYPES.has(point.type)) return false;
-
-  const needsReviews = point.type === 'marina' && !hasAiReviews(point);
-  const needsDetails = hasSparseDetails(point);
-
-  if (enrichmentIsFresh(point) && !needsDetails && !needsReviews) return false;
+  if (enrichmentIsFresh(point) && !hasSparseDetails(point)) return false;
+  if (enrichmentIsFresh(point) && hasSparseDetails(point)) {
+    // Retry once per week if still empty after a prior run
+    return true;
+  }
   if (!enrichmentIsFresh(point)) return true;
-  return needsDetails || needsReviews;
+  return hasSparseDetails(point);
 }
 
 function parseDepthM(value) {
@@ -105,33 +89,6 @@ function parseFuelTypes(value) {
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean);
-}
-
-function parseAiReviews(payload, pointType) {
-  if (pointType !== 'marina' || !Array.isArray(payload.reviews)) return null;
-
-  const items = payload.reviews
-    .slice(0, 4)
-    .map((entry, index) => {
-      const text = clean(entry?.text);
-      if (!text) return null;
-      const ratingRaw = entry?.rating;
-      const ratingNum =
-        typeof ratingRaw === 'number'
-          ? ratingRaw
-          : Number.parseFloat(String(ratingRaw ?? ''));
-      const rating = Number.isFinite(ratingNum)
-        ? Math.min(5, Math.max(1, Math.round(ratingNum * 10) / 10))
-        : null;
-      return {
-        author: clean(entry?.author) || `Sailor ${index + 1}`,
-        text,
-        rating,
-      };
-    })
-    .filter(Boolean);
-
-  return items.length ? items : null;
 }
 
 function buildPrompt(point) {
@@ -166,20 +123,13 @@ function buildPrompt(point) {
   if (point.description) lines.push(`- description: ${point.description}`);
 
   lines.push('');
-  lines.push(`JSON keys (all strings or null unless noted):
+  lines.push(`JSON keys (all strings or null):
 entrance_depth, berth_capacity, vhf_channel,
 opening_hours, fuel_types,
 amenities (services useful to boaters),
 summary (one sentence overview in English)`);
-  if (point.type === 'marina') {
-    lines.push(`reviews (array of 3 objects, required for marinas):
-  each item: { "author": string (e.g. "Guest skipper"), "text": string (2-3 sentences, realistic marina experience), "rating": number 1-5 }`);
-    lines.push('Write plausible sailor reviews about berthing, staff, facilities, and approach. Do not claim they are real people.');
-  } else {
-    lines.push('reviews: null');
-  }
   lines.push('For fuel stations prioritize fuel_types, opening_hours, amenities.');
-  lines.push('For marinas prioritize entrance_depth, berth_capacity, vhf_channel, opening_hours, and reviews.');
+  lines.push('For marinas prioritize entrance_depth, berth_capacity, vhf_channel, opening_hours.');
   lines.push(
     `Use coordinates (${point.latitude}, ${point.longitude}) to infer the real place if the name is vague.`,
   );
@@ -229,7 +179,6 @@ function payloadToUpdates(point, payload) {
   const fuelTypes = parseFuelTypes(payload.fuel_types);
   const amenities = clean(payload.amenities);
   const summary = clean(payload.summary);
-  const aiReviews = hasAiReviews(point) ? null : parseAiReviews(payload, point.type);
 
   const updates = {
     depth_m: point.depth_m ?? depthM,
@@ -242,7 +191,6 @@ function payloadToUpdates(point, payload) {
         : fuelTypes,
     amenities: clean(point.amenities) ? point.amenities : amenities,
     ai_summary: clean(point.ai_summary) ? point.ai_summary : summary,
-    ai_reviews: aiReviews,
   };
 
   const changed =
@@ -252,10 +200,9 @@ function payloadToUpdates(point, payload) {
     (updates.opening_hours && !clean(point.opening_hours)) ||
     (updates.fuel_types && (!point.fuel_types || point.fuel_types.length === 0)) ||
     (updates.amenities && !clean(point.amenities)) ||
-    (updates.ai_summary && !clean(point.ai_summary)) ||
-    (updates.ai_reviews && updates.ai_reviews.length > 0);
+    (updates.ai_summary && !clean(point.ai_summary));
 
-  if (!changed && !summary && !amenities && !aiReviews) return null;
+  if (!changed && !summary && !amenities) return null;
   return updates;
 }
 
@@ -288,11 +235,6 @@ async function enrichMapPoint(point, db, options = {}) {
        END,
        amenities = COALESCE(NULLIF(TRIM(amenities), ''), NULLIF(TRIM($7), '')),
        ai_summary = COALESCE(NULLIF(TRIM(ai_summary), ''), NULLIF(TRIM($8), '')),
-       ai_reviews = CASE
-         WHEN ai_reviews IS NOT NULL AND jsonb_array_length(ai_reviews) > 0 THEN ai_reviews
-         WHEN $9::jsonb IS NOT NULL THEN $9::jsonb
-         ELSE ai_reviews
-       END,
        enriched_at = NOW()
      WHERE id = $1
      RETURNING *`,
@@ -305,7 +247,6 @@ async function enrichMapPoint(point, db, options = {}) {
       updates.fuel_types,
       updates.amenities,
       updates.ai_summary,
-      updates.ai_reviews ? JSON.stringify(updates.ai_reviews) : null,
     ]
   );
 

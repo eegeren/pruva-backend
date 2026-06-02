@@ -6,7 +6,6 @@ async function ensureAiColumns() {
   await db.query(`
     ALTER TABLE map_points ADD COLUMN IF NOT EXISTS amenities TEXT;
     ALTER TABLE map_points ADD COLUMN IF NOT EXISTS ai_summary TEXT;
-    ALTER TABLE map_points ADD COLUMN IF NOT EXISTS ai_reviews JSONB;
     ALTER TABLE map_points ADD COLUMN IF NOT EXISTS enriched_at TIMESTAMP;
   `);
 }
@@ -127,9 +126,9 @@ exports.create = async (req, res, next) => {
       return res.status(400).json({ error: 'latitude and longitude must be valid numbers' });
     }
 
-    const allowedTypes = ['marina', 'fuel', 'service', 'water', 'customs', 'emergency', 'restaurant', 'beach', 'diving'];
+    const allowedTypes = ['marina', 'fuel', 'service'];
     if (!allowedTypes.includes(type)) {
-      return res.status(400).json({ error: `type must be one of ${allowedTypes.join(', ')}` });
+      return res.status(400).json({ error: 'type must be one of marina, fuel, service' });
     }
 
     const depthNum = depth_m == null ? null : Number(depth_m);

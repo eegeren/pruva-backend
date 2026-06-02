@@ -56,7 +56,7 @@ exports.getByBounds = async (req, res, next) => {
   try {
     const { minLat, maxLat, minLon, maxLon } = req.query;
     if (!minLat || !maxLat || !minLon || !maxLon) {
-      return res.status(400).json({ error: 'minLat, maxLat, minLon, maxLon gerekli' });
+      return res.status(400).json({ error: 'minLat, maxLat, minLon and maxLon are required' });
     }
     const result = await db.query(
       `SELECT

@@ -6,7 +6,7 @@ const pool = new Pool({
 });
 
 pool.on('connect', () => {
-  console.log('PostgreSQL bağlantısı kuruldu');
+  console.log('PostgreSQL connection established');
 });
 
 module.exports = pool;

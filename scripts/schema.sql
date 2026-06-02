@@ -89,39 +89,71 @@ CREATE INDEX IF NOT EXISTS idx_comments_anchorage ON comments(anchorage_id);
 CREATE INDEX IF NOT EXISTS idx_checkins_anchorage ON checkins(anchorage_id);
 CREATE INDEX IF NOT EXISTS idx_checkins_current ON checkins(anchorage_id, is_current);
 
--- Tekne profili
+-- Boat profiles
 CREATE TABLE IF NOT EXISTS boats (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   name VARCHAR(255) NOT NULL,
-  type VARCHAR(100),        -- yelkenli, motor, gulet
+  type VARCHAR(100),
+  boat_type TEXT,
+  manufacturer VARCHAR(160),
+  model VARCHAR(160),
   length_m DOUBLE PRECISION,
-  draft_m DOUBLE PRECISION, -- su altı derinliği
+  beam_m DOUBLE PRECISION,
+  draft_m DOUBLE PRECISION,
   fuel_capacity_l DOUBLE PRECISION,
   engine_type VARCHAR(100),
+  engine TEXT,
   registration_no VARCHAR(100),
   insurance_expires_at DATE,
   registration_expires_at DATE,
+  home_marina VARCHAR(255),
+  country VARCHAR(120),
   photo_url TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS boat_photos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  boat_id UUID REFERENCES boats(id) ON DELETE CASCADE,
+  image_url TEXT NOT NULL,
+  caption TEXT,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Yakıt takibi
+CREATE TABLE IF NOT EXISTS boat_documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  boat_id UUID REFERENCES boats(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  file_url TEXT NOT NULL,
+  expiry_date DATE,
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Fuel tracking
 CREATE TABLE IF NOT EXISTS fuel_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   boat_id UUID REFERENCES boats(id) ON DELETE CASCADE,
   liters DOUBLE PRECISION NOT NULL,
   price_per_liter DOUBLE PRECISION,
   total_cost DOUBLE PRECISION,
+  currency TEXT DEFAULT 'EUR',
   location_name VARCHAR(255),
+  location TEXT,
   latitude DOUBLE PRECISION,
   longitude DOUBLE PRECISION,
   engine_hours DOUBLE PRECISION,
   notes TEXT,
-  logged_at TIMESTAMP DEFAULT NOW()
+  logged_at TIMESTAMP DEFAULT NOW(),
+  refuel_date TIMESTAMP DEFAULT NOW(),
+  created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Bağlama yeri
+-- Moorings
 CREATE TABLE IF NOT EXISTS moorings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   boat_id UUID REFERENCES boats(id) ON DELETE CASCADE,
@@ -140,63 +172,154 @@ CREATE TABLE IF NOT EXISTS moorings (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Bakım kayıtları
+-- Maintenance logs
 CREATE TABLE IF NOT EXISTS maintenance_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   boat_id UUID REFERENCES boats(id) ON DELETE CASCADE,
   title VARCHAR(255) NOT NULL,
-  category VARCHAR(100),     -- motor, tekne, elektrik, yelken
+  category VARCHAR(100),
   description TEXT,
+  due_date DATE,
+  completed BOOLEAN DEFAULT FALSE,
+  completed_at TIMESTAMP,
   cost DOUBLE PRECISION,
+  currency TEXT DEFAULT 'EUR',
   engine_hours DOUBLE PRECISION,
   done_at DATE NOT NULL,
   next_due_at DATE,
   reminder_days INTEGER DEFAULT 30,
-  created_at TIMESTAMP DEFAULT NOW()
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- Seyir günlüğü
+-- Voyage logs
 CREATE TABLE IF NOT EXISTS voyage_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   boat_id UUID REFERENCES boats(id) ON DELETE CASCADE,
   from_name VARCHAR(255),
   to_name VARCHAR(255),
+  departure_name TEXT,
+  arrival_name TEXT,
   from_lat DOUBLE PRECISION,
   from_lon DOUBLE PRECISION,
   to_lat DOUBLE PRECISION,
   to_lon DOUBLE PRECISION,
+  departure_lat NUMERIC,
+  departure_lon NUMERIC,
+  arrival_lat NUMERIC,
+  arrival_lon NUMERIC,
   distance_nm DOUBLE PRECISION,
   duration_hours DOUBLE PRECISION,
+  duration_minutes INTEGER,
   avg_speed_kn DOUBLE PRECISION,
+  average_speed_knots NUMERIC,
   max_speed_kn DOUBLE PRECISION,
   wind_avg_kn DOUBLE PRECISION,
   wave_height_m DOUBLE PRECISION,
   fuel_used_l DOUBLE PRECISION,
+  weather_summary TEXT,
   crew_count INTEGER,
   notes TEXT,
   departed_at TIMESTAMP,
   arrived_at TIMESTAMP,
+  started_at TIMESTAMP,
+  ended_at TIMESTAMP,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Harita işaretlemeleri
+CREATE TABLE IF NOT EXISTS boat_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  boat_id UUID REFERENCES boats(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  event_date TIMESTAMP DEFAULT NOW(),
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Map points
 CREATE TABLE IF NOT EXISTS map_points (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL,
-  type VARCHAR(50) NOT NULL CHECK (type IN ('marina', 'fuel', 'service')),
+  type VARCHAR(50) NOT NULL CHECK (type IN ('marina', 'fuel', 'service', 'water', 'customs', 'emergency', 'restaurant', 'beach', 'diving')),
   latitude DOUBLE PRECISION NOT NULL,
   longitude DOUBLE PRECISION NOT NULL,
   description TEXT,
   phone VARCHAR(50),
   website VARCHAR(255),
   vhf_channel VARCHAR(10),
-  fuel_types TEXT[],        -- diesel, petrol
-  depth_m DOUBLE PRECISION, -- marina giriş derinliği
-  berth_count INTEGER,      -- marina tekne kapasitesi
+  fuel_types TEXT[],
+  depth_m DOUBLE PRECISION,
+  berth_count INTEGER,
   opening_hours VARCHAR(255),
+  amenities TEXT,
+  ai_summary TEXT,
+  enriched_at TIMESTAMP,
   rating DOUBLE PRECISION DEFAULT 0,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_map_points_location ON map_points(latitude, longitude);
 CREATE INDEX IF NOT EXISTS idx_map_points_type ON map_points(type);
+
+-- Global marine POIs imported from OSM/OpenSeaMap via Overpass
+CREATE TABLE IF NOT EXISTS marine_pois (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  source TEXT DEFAULT 'osm',
+  source_id TEXT,
+  osm_type TEXT,
+  osm_id BIGINT,
+  type TEXT NOT NULL,
+  name TEXT,
+  normalized_name TEXT,
+  latitude NUMERIC NOT NULL,
+  longitude NUMERIC NOT NULL,
+  country TEXT,
+  region TEXT,
+  city TEXT,
+  address TEXT,
+  tags JSONB DEFAULT '{}'::jsonb,
+  description TEXT,
+  ai_summary TEXT,
+  rating NUMERIC,
+  review_count INTEGER,
+  phone TEXT,
+  website TEXT,
+  vhf_channel TEXT,
+  opening_hours TEXT,
+  entrance_depth_m NUMERIC,
+  berth_capacity INTEGER,
+  fuel_types TEXT[],
+  facilities TEXT[],
+  price_range TEXT,
+  holding_type TEXT,
+  seabed_type TEXT,
+  shelter_quality TEXT,
+  depth_min_m NUMERIC,
+  depth_max_m NUMERIC,
+  source_updated_at TIMESTAMP,
+  imported_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE (source, osm_type, osm_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_marine_pois_type ON marine_pois(type);
+CREATE INDEX IF NOT EXISTS idx_marine_pois_country ON marine_pois(country);
+CREATE INDEX IF NOT EXISTS idx_marine_pois_region ON marine_pois(region);
+CREATE INDEX IF NOT EXISTS idx_marine_pois_source_id ON marine_pois(source_id);
+CREATE INDEX IF NOT EXISTS idx_marine_pois_location ON marine_pois(latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_marine_pois_normalized_name ON marine_pois(normalized_name);
+
+CREATE TABLE IF NOT EXISTS import_jobs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  region_name TEXT,
+  bbox JSONB,
+  status TEXT NOT NULL DEFAULT 'pending',
+  started_at TIMESTAMP DEFAULT NOW(),
+  finished_at TIMESTAMP,
+  total_imported INTEGER DEFAULT 0,
+  total_updated INTEGER DEFAULT 0,
+  error TEXT
+);

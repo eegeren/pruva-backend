@@ -158,31 +158,31 @@ Input:
 - weather window
 
 Output:
-- alternatif rota listesi
-- her rota icin: `distance_nm`, `eta_hours`, `risk_score`, `fuel_l`
+- Alternative route list
+- For each route: `distance_nm`, `eta_hours`, `risk_score`, `fuel_l`
 
 ### iOS contract
 
 - Top tab: `Safest`, `Shortest`, `Fuel`.
-- Compare sheet bu 4 metriği yan yana gosterir.
+- Compare sheet shows these 4 metrics side by side.
 
 ## 6) Anchorage intelligence
 
 Best anchor time:
-- Historical weather + crowd + wave trend ile saatlik score.
-- 0-100 comfort score, top 3 window dondurulur.
+- Hourly score from historical weather, crowd data, and wave trends.
+- Returns a 0-100 comfort score and the top 3 windows.
 
-Yogunluk tahmini:
-- check-in historical + weekday/hour seasonality.
+Crowd forecast:
+- Historical check-ins plus weekday/hour seasonality.
 - Output: `expected_boats`, `confidence`.
 
-Benzer koy onerisi:
+Similar anchorage recommendations:
 - MVP: feature-based cosine (depth, shelter, swell exposure, crowd profile).
 - Phase 2: embedding model + ANN index.
 
 ### iOS contract
 
-- Intelligence API tek response ile:
+- Intelligence API returns a single response with:
   - `best_anchor_windows`
   - `ai_summary`
   - `crowd_forecast[]`

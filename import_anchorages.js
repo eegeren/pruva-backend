@@ -6,11 +6,11 @@ const pool = new Pool({
 });
 
 async function importAnchorages() {
-  console.log('📂 JSON okunuyor...');
+  console.log('Reading anchorages JSON...');
   const raw = fs.readFileSync('anchorages_world.json', 'utf8');
   const data = JSON.parse(raw);
   const nodes = data.elements;
-  console.log(`🌍 Toplam ${nodes.length} koy bulundu`);
+  console.log(`Found ${nodes.length} anchorages`);
 
   let imported = 0;
   let skipped = 0;
@@ -19,7 +19,7 @@ async function importAnchorages() {
     const { lat, lon, tags = {} } = node;
     if (!lat || !lon) { skipped++; continue; }
 
-    const name = tags.name || tags['name:tr'] || tags['name:en'] || `Koy ${node.id}`;
+    const name = tags.name || tags['name:en'] || tags['name:tr'] || `Anchorage ${node.id}`;
     const depth = tags['seamark:anchorage:depth'] || tags['depth'] || null;
     const bottomType = normalizeBottomType(tags['seamark:anchorage:bottom'] || tags['bottom'] || null);
     const description = tags['description'] || null;
@@ -36,11 +36,11 @@ async function importAnchorages() {
     }
 
     if (imported % 200 === 0 && imported > 0) {
-      console.log(`✅ ${imported} / ${nodes.length} aktarıldı...`);
+      console.log(`${imported} / ${nodes.length} imported...`);
     }
   }
 
-  console.log(`\n🎉 Tamamlandı! Aktarılan: ${imported}, Atlanan: ${skipped}`);
+  console.log(`\nDone. Imported: ${imported}, skipped: ${skipped}`);
   await pool.end();
 }
 

@@ -8,7 +8,12 @@
     "db:migrate": "node src/migrate.js",
     "db:migrate-ai": "node scripts/run-ai-migration.js",
     "db:seed": "node src/migrate.js",
-    "db:import": "node import_anchorages.js"
+    "db:import": "node import_anchorages.js",
+    "db:import-map-points": "node import_map_points.js",
+    "import:marine:turkey": "node scripts/importMarinePOIs.js turkey_coast",
+    "import:marine:aegean": "node scripts/importMarinePOIs.js aegean",
+    "import:marine:mediterranean": "node scripts/importMarinePOIs.js mediterranean",
+    "import:marine:world": "node scripts/importMarinePOIs.js world"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

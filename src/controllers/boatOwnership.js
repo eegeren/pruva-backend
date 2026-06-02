@@ -7,7 +7,7 @@ async function verifyBoatOwnership(boatId, userId) {
   );
 
   if (!result.rows[0]) {
-    throw { status: 403, message: 'Bu tekne size ait değil' };
+    throw { status: 403, message: 'You do not have permission to access this boat' };
   }
 }
 
