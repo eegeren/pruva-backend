@@ -266,7 +266,7 @@ exports.importRegion = async (req, res, next) => {
     const result = await importRegion(region);
     res.json({ region, ...result });
   } catch (err) {
-    next(err);
+    res.status(500).json({ error: err.message || 'Marine POI import failed' });
   }
 };
 
@@ -284,6 +284,6 @@ exports.importBoundingBox = async (req, res, next) => {
     });
     res.json(result);
   } catch (err) {
-    next(err);
+    res.status(500).json({ error: err.message || 'Marine POI import failed' });
   }
 };
