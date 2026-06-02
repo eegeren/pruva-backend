@@ -109,8 +109,12 @@ function tileRegion(bbox, stepDegrees = 2) {
 async function fetchOverpass(bbox, attempt = 1) {
   const response = await fetch(OVERPASS_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ data: buildOverpassQuery(bbox) }),
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      Accept: 'application/json',
+      'User-Agent': 'PruvaMarineImporter/1.0 (contact: support@pruva.app)',
+    },
+    body: buildOverpassQuery(bbox),
   });
 
   if (!response.ok) {
