@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const { importBoundingBox, importRegion } = require('../services/overpassMarineImporter');
+const { ensureMarinePOITables } = require('../services/marinePOISchema');
 
 const ALLOWED_TYPES = new Set([
   'marina',
@@ -127,6 +128,7 @@ function mapMarinePOIToMapPoint(row) {
 
 exports.getByBounds = async (req, res, next) => {
   try {
+    await ensureMarinePOITables();
     const bbox = req.query.bbox ? String(req.query.bbox).split(',').map(Number) : null;
     const minLat = bbox ? bbox[0] : Number(req.query.minLat);
     const minLon = bbox ? bbox[1] : Number(req.query.minLon);
@@ -169,6 +171,7 @@ exports.getByBounds = async (req, res, next) => {
 
 exports.getById = async (req, res, next) => {
   try {
+    await ensureMarinePOITables();
     const rawId = String(req.params.id).replace(/^marine-/, '');
     const result = await db.query('SELECT * FROM marine_pois WHERE id = $1', [rawId]);
     const row = result.rows[0];
@@ -181,6 +184,7 @@ exports.getById = async (req, res, next) => {
 
 exports.nearby = async (req, res, next) => {
   try {
+    await ensureMarinePOITables();
     const lat = Number(req.query.lat);
     const lon = Number(req.query.lon);
     const radiusKm = Number(req.query.radiusKm || 25);
@@ -223,6 +227,7 @@ exports.nearby = async (req, res, next) => {
 
 exports.search = async (req, res, next) => {
   try {
+    await ensureMarinePOITables();
     const q = String(req.query.q || '').trim();
     if (q.length < 2) return res.json([]);
 
@@ -255,6 +260,7 @@ exports.search = async (req, res, next) => {
 
 exports.importRegion = async (req, res, next) => {
   try {
+    await ensureMarinePOITables();
     const region = req.body?.region || req.params.region;
     if (!region) return res.status(400).json({ error: 'region is required' });
     const result = await importRegion(region);
@@ -266,6 +272,7 @@ exports.importRegion = async (req, res, next) => {
 
 exports.importBoundingBox = async (req, res, next) => {
   try {
+    await ensureMarinePOITables();
     const { minLat, minLon, maxLat, maxLon } = req.body || {};
     const values = [minLat, minLon, maxLat, maxLon].map(Number);
     if (values.some((value) => !Number.isFinite(value))) {

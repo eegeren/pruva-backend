@@ -3,6 +3,7 @@ const db = require('../config/db');
 const { normalizeOSMElement } = require('./marinePOINormalizer');
 const { enrichMarinePOI } = require('./marinePOIEnrichmentService');
 const { generateSummary, isConfigured: isGeminiConfigured } = require('./geminiMarinePOIEnricher');
+const { ensureMarinePOITables } = require('./marinePOISchema');
 
 const OVERPASS_URL = process.env.OVERPASS_URL || 'https://overpass-api.de/api/interpreter';
 
@@ -293,6 +294,7 @@ async function finishJob(jobId, status, counts, error = null) {
 }
 
 async function importBoundingBox(minLat, minLon, maxLat, maxLon, options = {}) {
+  await ensureMarinePOITables();
   const bbox = { minLat, minLon, maxLat, maxLon };
   const job = await createJob(options.regionName || 'custom_bbox', bbox);
   const counts = { imported: 0, updated: 0, skipped: 0 };
@@ -385,4 +387,3 @@ module.exports = {
   importRegion,
   importWorldwideInTiles,
 };
-
