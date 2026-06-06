@@ -130,3 +130,39 @@ exports.updateProfile = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.deleteAccount = async (req, res, next) => {
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+
+    const userCheck = await client.query('SELECT id FROM users WHERE id = $1', [req.user.id]);
+    if (!userCheck.rows[0]) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const userTables = await client.query(
+      `SELECT table_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public'
+         AND column_name = 'user_id'
+         AND table_name <> 'users'`
+    );
+
+    for (const row of userTables.rows) {
+      const tableName = row.table_name;
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(tableName)) continue;
+      await client.query(`DELETE FROM "${tableName}" WHERE user_id = $1`, [req.user.id]);
+    }
+
+    await client.query('DELETE FROM users WHERE id = $1', [req.user.id]);
+    await client.query('COMMIT');
+    res.json({ message: 'Account deleted' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    next(err);
+  } finally {
+    client.release();
+  }
+};
